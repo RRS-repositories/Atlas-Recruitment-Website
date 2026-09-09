@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+.vite
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-error.log*
+
+# Locally installed Claude Code skills. Machine-local tooling, not project code.
+.claude/skills/
+.agents/skills/
+skills-lock.json
