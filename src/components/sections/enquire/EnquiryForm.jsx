@@ -10,9 +10,9 @@ import { validators, validateAll } from '@/utils/validators';
  *
  * This site is a static frontend with no backend of its own — the FAC portal
  * will own the enquiry API. Until that endpoint exists, VITE_ENQUIRY_ENDPOINT
- * is unset and the form deliberately refuses to pretend: rather than posting
- * into the void or showing a success panel for an enquiry nobody received, it
- * tells the visitor to phone or email instead.
+ * is unset and the form opens the visitor's email app with the enquiry
+ * pre-filled and addressed to company.enquiryEmail. It deliberately does not
+ * show a success panel: nothing is received until the visitor presses send.
  *
  * Point it at the portal when it is ready — no code change, just a build-time
  * variable:  VITE_ENQUIRY_ENDPOINT=https://portal.example/api/enquiries
@@ -38,6 +38,18 @@ const FIELD_LABELS = {
   headcount: 'How many people',
   message: 'About the role',
 };
+
+/** A mailto: link carrying the whole enquiry, for when there is no endpoint. */
+function buildMailto(values) {
+  const subject = `Enquiry from ${values.name}${values.company ? ` (${values.company})` : ''}`;
+  const body = Object.entries(FIELD_LABELS)
+    .map(([field, label]) => `${label}: ${values[field] || '—'}`)
+    .join('\n');
+  return (
+    `mailto:${company.enquiryEmail}` +
+    `?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  );
+}
 
 const controlClass =
   'w-full rounded-md border-[1.5px] bg-[#fafbfc] px-3.5 py-3 text-[0.92rem] text-ink ' +
@@ -66,7 +78,9 @@ export function EnquiryForm() {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [mailtoHref, setMailtoHref] = useState('');
   const summaryRef = useRef(null);
+  const mailtoRef = useRef(null);
 
   // Bot checks, invisible to a real visitor. `website` is a field no human can
   // reach; `renderedAt` lets the server tell a typed submission from an
@@ -108,6 +122,7 @@ export function EnquiryForm() {
     if (sending) return;
 
     setSubmitError('');
+    setMailtoHref('');
     const nextErrors = validateAll(values);
     setErrors(nextErrors);
 
@@ -118,14 +133,14 @@ export function EnquiryForm() {
       return;
     }
 
-    // No endpoint configured yet. Say so plainly — a success panel here would
-    // be a lie, and a lost enquiry is worse than an obvious one.
+    // No endpoint configured yet: hand the enquiry to the visitor's email app.
+    // Not a success panel — nothing arrives until they press send, so the
+    // notice says that and keeps a link in case no email app opened.
     if (!ENDPOINT) {
-      setSubmitError(
-        `Our enquiry form isn't connected yet. Please email ${company.email} or call ` +
-          `${company.phone} and we'll pick it up straight away.`,
-      );
-      focusSummary();
+      const href = buildMailto(values);
+      setMailtoHref(href);
+      window.location.href = href;
+      requestAnimationFrame(() => mailtoRef.current?.focus());
       return;
     }
 
@@ -252,6 +267,32 @@ export function EnquiryForm() {
               ))}
             </ul>
           ) : null}
+        </div>
+      ) : null}
+
+      {mailtoHref ? (
+        <div
+          ref={mailtoRef}
+          role="status"
+          tabIndex={-1}
+          className="rounded-md border-[1.5px] border-navy bg-white px-4 py-3.5"
+        >
+          <h3 className="text-[0.9rem] font-bold text-navy">One more step — press send</h3>
+          <p className="mt-2 text-[0.85rem] text-ink">
+            Your email app should have opened with your enquiry ready to go. We only receive
+            it once you send that email.
+          </p>
+          <p className="mt-2 text-[0.85rem] text-ink">
+            Nothing opened?{' '}
+            <a href={mailtoHref} className="font-semibold text-navy underline">
+              Open the email again
+            </a>{' '}
+            or write to{' '}
+            <a href={`mailto:${company.enquiryEmail}`} className="font-semibold text-navy underline">
+              {company.enquiryEmail}
+            </a>
+            .
+          </p>
         </div>
       ) : null}
 
