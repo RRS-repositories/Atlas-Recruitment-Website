@@ -4,6 +4,8 @@ export const company = {
   phoneHref: 'tel:+441204000000',
   email: 'hello@atlasrecruitment.co.uk',
   emailHref: 'mailto:hello@atlasrecruitment.co.uk',
+  // Where the enquiry form sends a pre-filled email while it has no API endpoint.
+  enquiryEmail: 'bf@rowanrose.co.uk',
   headOffice: 'Manchester, United Kingdom',
   overseasOffices: 'Dubai · Hyderabad · Cape Town · Durban · Manila',
   footerBlurb:
